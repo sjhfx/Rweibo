@@ -1,0 +1,16 @@
+---
+title: "An interface to the Weibo open platform"
+author: "data2analysis"
+date: "`r Sys.Date()`"
+output: knitr:::html_vignette
+vignette: >
+  %\VignetteIndexEntry{An Introduction to the recharts Package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Please see the website http://blog.sina.com.cn/data2analysis for more information. 
+
+```{r}
+library(Rweibo)
+```
