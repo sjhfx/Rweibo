@@ -1,6 +1,3 @@
-
-
-
 ##' Search content by word.
 ##' 
 ##' @title Search content by word.
@@ -34,9 +31,7 @@
 ##' }
 
 web.search.content <- function(sword, page = 1, combinewith = NULL, 
-		since = NULL, sinceID = NULL, sleepmean = 3, sleepsd = 1, 
-		roauth = NULL, ...) 
-{
+		since = NULL, sinceID = NULL, sleepmean = 3, sleepsd = 1, roauth = NULL, ...) {
 	if (length(page) == 1) page = 1:page
 	page <- page[page > 0 & page <= 50]
 	page <- sort(page)
@@ -119,26 +114,19 @@ web.search.content <- function(sword, page = 1, combinewith = NULL,
 	
 	weibopage <- htmlParse(weibolist[["html"]], asText=TRUE, encoding = "UTF-8")
 	
-	weiboitem.attr <- getNodeSet(weibopage, "//dl[@action-type='feed_list_item']")
-	weiboitem.con <- getNodeSet(weibopage, "//dd[@class='content']")
-	weiboitem.nores <- getNodeSet(weibopage, "//div[@class='pl_noresult']")
+	weiboitem.attr <- getNodeSet(weibopage, "//div[@action-type = 'feed_list_item']")
+	weiboitem.name <- getNodeSet(weibopage, "//div[@class = 'feed_content wbcon']//a[@class = 'W_texta W_fb']")
+	weiboitem.date <- getNodeSet(weibopage, "//div[@class = 'feed_from W_textb']//a[@title]")
+	weiboitem.stat <- getNodeSet(weibopage, "//div[@class = 'feed_action clearfix']//span")
+	weiboitem.nores <- getNodeSet(weibopage, "//div[@class = 'pl_noresult']")
 	
 	if (length(weiboitem.nores) == 0) {
 		res.mid <- sapply(weiboitem.attr, function(X) xmlGetAttr(X, "mid"))
-		res.con <- sapply(weiboitem.con, FUN = function(X) xmlValue(getNodeSet(X, "p[@node-type='feed_list_content']")[[1]]))	
-		res.name <- sapply(weiboitem.con, FUN = function(X) xmlGetAttr(getNodeSet(X, "p[@node-type='feed_list_content']/a")[[1]], "nick-name"))
-		res.date <- sapply(weiboitem.con, FUN = function(X) xmlGetAttr(getNodeSet(X, "p/a[@node-type='feed_list_item_date']")[[1]], "title"))
-		res.stat <- lapply(weiboitem.con, FUN = function(X) sapply(getNodeSet(X, "p/span/a"), xmlValue))
-		res.forward <- sapply(weiboitem.con, FUN = function(X) {
-					tmp.node <- getNodeSet(X, "dl/dt[@node-type='feed_list_forwardContent']")
-					if (length(tmp.node) == 0) {
-						NA
-					} else {
-						xmlValue(tmp.node[[1]])
-					}
-				}
-		)
+		res.name <- sapply(weiboitem.name, function(X) xmlGetAttr(X, "nick-name"))
 		Encoding(res.name) <- "UTF-8"
+		res.con <- sapply(getNodeSet(weibopage, "//div[@class = 'feed_content wbcon']/p"), xmlValue)
+		res.date <- sapply(weiboitem.date, function(X) xmlGetAttr(X, "title"))
+		res.stat <- sapply(weiboitem.stat, xmlValue)
 		res.con <- .strtrim(res.con)
 		res.forward <- .strtrim(res.forward)
 		res.date <- strptime(res.date, format = "%Y-%m-%d %H:%M")
@@ -146,6 +134,12 @@ web.search.content <- function(sword, page = 1, combinewith = NULL,
 		res.stat.r <- as.numeric(gsub("[^0-9]", "", sapply(res.stat, FUN = function(X) X[grep("\u8BC4\u8BBA", X)])))
 		res.stat.f[is.na(res.stat.f)] <- 0
 		res.stat.r[is.na(res.stat.r)] <- 0
+		
+		res.stat.f <- res.stat.f[(1:length(res.mid))*4-2]
+		res.stat.r <- res.stat.r[(1:length(res.mid))*4-1]
+		res.forward <- as.numeric(gsub("[^0-9]", "", res.stat[(1:length(res.mid))*4]))
+		# like counts
+		res.forward[is.na(res.forward)] <- 0
 		
 		OUT <- data.frame(MID = res.mid, Author = res.name, Weibo = res.con, Forward = res.forward, Time_Weibo = res.date,
 				Time_Search = Sys.time(), Count_Forward = res.stat.f, Count_Reply = res.stat.r, stringsAsFactors = FALSE)
@@ -159,14 +153,14 @@ web.search.content <- function(sword, page = 1, combinewith = NULL,
 }
 
 
-.search.content.curl <- function(sword, page = 1, curl = NULL, ...) {
+.search.content.curl <- function(sword, page = 1, ...) {
 	requestURL <- "http://s.weibo.com/weibo/"
 	sword <- curlEscape(.cntoUTF8(sword))
 	strurl <- paste(requestURL, sword, "&xsort=time&page=", page, sep = "") # time sorting 
 	
-	resXML <- getURL(strurl, curl = curl, .encoding = 'UTF-8')
+	resXML <- getURL(strurl, .encoding = 'UTF-8')
 	resHTMLs <- .strextract(resXML, "<script>.+?</script>")[[1]]
-	resHTML <- resHTMLs[grep("\"pid\":\"pl_weibo_feedlist\"", resHTMLs)][1]
+	resHTML <- resHTMLs[grep("\"pid\":\"pl_weibo_direct\"", resHTMLs)][1]
 	if (is.na(resHTML)) {
 		warning("Can not crawl any page now. May be forbidden by Sina temporarily.", call. = FALSE)
 		return(NULL)
@@ -177,26 +171,19 @@ web.search.content <- function(sword, page = 1, combinewith = NULL,
 	
 	weibopage <- htmlParse(weibolist[["html"]], asText=TRUE, encoding = "UTF-8")
 	
-	weiboitem.attr <- getNodeSet(weibopage, "//dl[@class='feed_list']")
-	weiboitem.con <- getNodeSet(weibopage, "//dd[@class='content']")
-	weiboitem.nores <- getNodeSet(weibopage, "//div[@class='pl_noresult']")
+	weiboitem.attr <- getNodeSet(weibopage, "//div[@action-type = 'feed_list_item']")
+	weiboitem.name <- getNodeSet(weibopage, "//div[@class = 'feed_content wbcon']//a[@class = 'W_texta W_fb']")
+	weiboitem.date <- getNodeSet(weibopage, "//div[@class = 'feed_from W_textb']//a[@title]")
+	weiboitem.stat <- getNodeSet(weibopage, "//div[@class = 'feed_action clearfix']//span")
+	weiboitem.nores <- getNodeSet(weibopage, "//div[@class = 'pl_noresult']")
 	
 	if (length(weiboitem.nores) == 0) {
 		res.mid <- sapply(weiboitem.attr, function(X) xmlGetAttr(X, "mid"))
-		res.con <- sapply(weiboitem.con, FUN = function(X) xmlValue(getNodeSet(X, "p[@node-type='feed_list_content']")[[1]]))	
-		res.name <- sapply(weiboitem.con, FUN = function(X) xmlGetAttr(getNodeSet(X, "p[@node-type='feed_list_content']/a")[[1]], "nick-name"))
-		res.date <- sapply(weiboitem.con, FUN = function(X) xmlGetAttr(getNodeSet(X, "p/a[@node-type='feed_list_item_date']")[[1]], "title"))
-		res.stat <- lapply(weiboitem.con, FUN = function(X) sapply(getNodeSet(X, "p/span/a"), xmlValue))
-		res.forward <- sapply(weiboitem.con, FUN = function(X) {
-					tmp.node <- getNodeSet(X, "dl/dt[@node-type='feed_list_forwardContent']")
-					if (length(tmp.node) == 0) {
-						NA
-					} else {
-						xmlValue(tmp.node[[1]])
-					}
-				}
-		)
-		Encoding(res.name) <- "UTF-8"			
+		res.name <- sapply(weiboitem.name, function(X) xmlGetAttr(X, "nick-name"))
+		Encoding(res.name) <- "UTF-8"
+		res.con <- sapply(getNodeSet(weibopage, "//div[@class = 'feed_content wbcon']/p"), xmlValue)
+		res.date <- sapply(weiboitem.date, function(X) xmlGetAttr(X, "title"))
+		res.stat <- sapply(weiboitem.stat, xmlValue)
 		res.con <- .strtrim(res.con)
 		res.forward <- .strtrim(res.forward)
 		res.date <- strptime(res.date, format = "%Y-%m-%d %H:%M")
@@ -204,6 +191,12 @@ web.search.content <- function(sword, page = 1, combinewith = NULL,
 		res.stat.r <- as.numeric(gsub("[^0-9]", "", sapply(res.stat, FUN = function(X) X[grep("\u8BC4\u8BBA", X)])))
 		res.stat.f[is.na(res.stat.f)] <- 0
 		res.stat.r[is.na(res.stat.r)] <- 0
+		
+		res.stat.f <- res.stat.f[(1:length(res.mid))*4-2]
+		res.stat.r <- res.stat.r[(1:length(res.mid))*4-1]
+		res.forward <- as.numeric(gsub("[^0-9]", "", res.stat[(1:length(res.mid))*4]))
+		# like counts
+		res.forward[is.na(res.forward)] <- 0
 		
 		OUT <- data.frame(MID = res.mid, Author = res.name, Weibo = res.con, Forward = res.forward, Time_Weibo = res.date,
 				Time_Search = Sys.time(), Count_Forward = res.stat.f, Count_Reply = res.stat.r, stringsAsFactors = FALSE)

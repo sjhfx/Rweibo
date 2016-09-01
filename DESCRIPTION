@@ -1,6 +1,6 @@
 Package: Rweibo
 Title: An interface to the Weibo open platform
-Version: 0.3
+Version: 0.3.1
 Author: Jian Li, Yibo Chen, sjhfx
 Description: This package provides an interface to sina weibo using
     OAuth 2.0 and cookies.

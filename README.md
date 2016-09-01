@@ -21,6 +21,8 @@ roauth = createOAuth(app_name, access_name)
 post_weibo = statuses.update(roauth, status = "我在使用Rweibo发微博 @数据化分析")
 repost_weibo = statuses.repost(roauth, id = "4012457850732123", status = "使用Rweibo转发")
 comment_weibo = comments.create(roauth, id = "4012457850732123", comment = "使用Rweibo评论")
+# 搜索微博
+web1 <- web.search.content(sword = "数据化分析", page = 5)
 ```
 
 ## 关注微信（isjhfx）
