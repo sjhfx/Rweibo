@@ -25,5 +25,6 @@ comment_weibo = comments.create(roauth, id = "4012457850732123", comment = "使�
 web1 <- web.search.content(sword = "数据化分析", page = 5)
 ```
 
-## 关注微信（isjhfx）
-![image](https://github.com/sjhfx/rwda/raw/master/images/isjhfx.jpg)
+## 关注微信公众号
+
+ID：linjiwx
